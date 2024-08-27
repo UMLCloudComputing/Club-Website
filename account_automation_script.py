@@ -80,7 +80,7 @@ if __name__== "__main__":
     single_user_group.add_argument('-u', '--username', action="store", type=str, help="The username for the new IAM user")
     parser.add_argument('--use_default_pswd', action='store_true', help="Whether or not to use the default password: 'Cloud@computing1'", default=False)
     single_user_group.add_argument('--policy_group', action="store", type=str, help="The Policy group to be used for the IAM user being created", default=None)
-    file_group.add_argument('--filename', type=str, help="Filename for file that contains IAM user details, seperated by newlines. Format: (username policy_group\\n)")
+    file_group.add_argument('--filename', type=str, help="Filename for file that contains IAM user details, seperated by newlines or commas. Format: (username policy_group\\n)")
     log_verbose_group.add_argument('-v', '--verbose', action="store_true", help="Enable verbose mode")
     log_verbose_group.add_argument('--logging', action="store_true", help="Enable logging to a file")
     args = parser.parse_args()
@@ -110,12 +110,16 @@ if __name__== "__main__":
     if not any(vars(args).values()):
         parser.print_help()
         sys.exit()
-
+    
     if args.filename:
         with open(args.filename, 'r') as file:
             lines = file.read().splitlines()
         for line in lines:
             username, policy_group = line.split()
+
+            # If you want all users to be of UML_Students
+            policy_group = 'UML_Students'
+            
             create_user(args, username, password, policy_group)
     else:
         create_user(args, args.username, password, args.policy_group)
