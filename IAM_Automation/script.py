@@ -31,6 +31,9 @@ import secrets
 import string
 import sys
 import logging
+import json
+import typing
+
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +47,10 @@ def create_random_password(length = 16) -> str:
     logger.info(f"Password created, length: {length}")
     return password
 
-def create_user(args, username: str, password=None, policy_group=None):
+
+
+# Function to create an IAM account
+def create_user(args: any, username: str, password: typing.Optional[str] = None, policy_group: typing.Optional[str] = None):
     iam = boto3.client("iam")
     # Check if user exists
     try:
@@ -82,6 +88,9 @@ def create_user(args, username: str, password=None, policy_group=None):
                 print(f"Error creating the new IAM user '{username}'. {e}")
             if (args.logging):
                 logger.error(f"Error creating IAM user '{username}'. {e}")
+
+
+# Function to modify IAM account password or Policy Group
 
 
 if __name__== "__main__":
@@ -170,14 +179,30 @@ if __name__== "__main__":
         sys.exit()
     
     if args.filename:
-        with open(args.filename, 'r') as file:
-            lines = file.read().splitlines()
-        for line in lines:
-            username, policy_group = line.split()
+        with open(args.filename, mode="r", encoding="utf-8") as read_file:
+            op_objects = json.loads(read_file)
+            for op_object in op_objects:
+                if op_object["operation"] == "create":
+                    password = DEFAULT_PASSWORD if op_object["use_default_password"] else None
+                    create_user(op_object["username"], password, policy_group="UML_Students")
+                elif op_object["operation"] == "modify":
+                    
+                elif op_object["operation"] == "delete":
 
-            # If you want all users to be of UML_Students
-            policy_group = 'UML_Students'
+                else:
+                    if (args.logging):
+                        logger.error(f"Invalid operation specified: {op_object["operation"]}")
+                    print(f"Operation invalid: {op_object["operation"]}")
+                
+                
+        # with open(args.filename, 'r') as file:
+        #     lines = file.read().splitlines()
+        # for line in lines:
+        #     username, policy_group = line.split()
+
+        #     # If you want all users to be of UML_Students
+        #     policy_group = 'UML_Students'
             
-            create_user(args, username, password, policy_group)
+        #     create_user(args, username, password, policy_group)
     else:
         create_user(args, args.username, password, args.policy_group)

@@ -6,6 +6,7 @@
     },
     {
         "operation": "modify",
+        "type": "password",
         "username": "test@student.uml.edu",
         "old_password": "Cloud@computing1",
         "new_password": "testing1"
