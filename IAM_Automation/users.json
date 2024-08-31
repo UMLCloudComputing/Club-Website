@@ -1,0 +1,17 @@
+[
+    {
+        "operation": "create",
+        "username": "test@student.uml.edu",
+        "use_default_password": true
+    },
+    {
+        "operation": "modify",
+        "username": "test@student.uml.edu",
+        "old_password": "Cloud@computing1",
+        "new_password": "testing1"
+    },
+    {
+        "operation": "delete",
+        "username": "test@student.uml.edu"
+    }
+]
