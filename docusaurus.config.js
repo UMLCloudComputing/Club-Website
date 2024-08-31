@@ -100,6 +100,14 @@ const config = {
         disableSwitch: false,
         respectPrefersColorScheme: true,
       },
+      announcementBar: {
+        id: 'announcement-bar',
+        content:
+          '🚀 We will be at the <a href="https://www.uml.edu/calendar/events/43828122">UML Club Engagement Fair</a> after Convocation! 🚀',
+        backgroundColor: '#48a0ff',
+        textColor: '#fff',
+        isCloseable: false
+      },
       navbar: {
         title: 'UML Cloud Computing Club',
         logo: {

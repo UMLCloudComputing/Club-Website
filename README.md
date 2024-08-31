@@ -12,10 +12,10 @@ This is the official repo for the UML Cloud Computing Club's website.
 The website is implemented using [Docusaurus](https://docusaurus.io/), [MUI](https://mui.com/), and some fundamental [ReactJS](https://react.dev/).
 
 
-## 👨‍💻 Documentation and Tutorials Contribution Guidelines
+## 👨‍💻 Activities and Resources Contribution Guidelines
 <details>
 <summary>View Contents</summary>
-To edit the documentation sections or the tutorials section of the website:
+To edit the activities sections or the resources section of the website:
 
 1. Create a new branch from the **main** branch
 2. Make the appropriate edits within this branch
@@ -25,7 +25,7 @@ To edit the documentation sections or the tutorials section of the website:
 
 All markdown files containing documentation details of the projects are in **docs/projects/** with the project's name marking the folder that contain's it's documentation
 
-All markdown files containing tutorial details are in **docs/tutorials/** with the specific tutorial's name marking the folder that contain's it's files. 
+All markdown files containing tutorial details are in **docs/resources/** with the specific resource/class's name marking the folder that contain's it's files. 
 
 All markdown files containing activity details are in **docs/activities/** with the specific activity's name marking the folder that contain's it's files. 
 
