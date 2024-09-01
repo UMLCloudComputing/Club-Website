@@ -29,15 +29,23 @@ import boto3
 import argparse
 import secrets
 import string
+import csv
 import sys
 import logging
 import json
 import typing
+from typing import Literal
 
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_PASSWORD = "Cloud@computing1"
+
+special_policy_groups = []
+with open('permissive_policy_groups.csv', newline='')  as csvfile:
+    reader = csv.reader(csvfile)
+    special_policy_groups = list(reader)
+
 
 def create_random_password(length = 16) -> str:
     chars = string.ascii_letters + string.digits + string.punctuation
@@ -46,8 +54,6 @@ def create_random_password(length = 16) -> str:
         password += secrets.choice(chars)
     logger.info(f"Password created, length: {length}")
     return password
-
-
 
 # Function to create an IAM account
 def create_user(args: any, username: str, password: typing.Optional[str] = None, policy_group: typing.Optional[str] = None):
@@ -83,7 +89,6 @@ def create_user(args: any, username: str, password: typing.Optional[str] = None,
                     if (args.logging):
                         logger.error(f"Error adding '{username}' to policy group '{policy_group}'. {e}")
         except Exception as e:
-            # ADD VERBOSE
             if (args.verbose):
                 print(f"Error creating the new IAM user '{username}'. {e}")
             if (args.logging):
@@ -91,6 +96,74 @@ def create_user(args: any, username: str, password: typing.Optional[str] = None,
 
 
 # Function to modify IAM account password or Policy Group
+_TYPES = Literal["password", "policy_group"]
+def modify_user(args: any, operation_dict: dict):
+    iam = boto3.client("iam")
+    # Check if the user exists
+    try: 
+        iam.get_user(UserName = operation_dict["username"])
+        if (args.verbose):
+            print(f"IAM User Modification failed: Username taken")
+        if (args.logging):
+            logger.warning("IAM User Modification failed: Username taken")
+    except iam.exceptions.NoSuchEntityException:
+        try:
+            if (operation_dict["type"] == "password"):
+                modify_user_password(args, 
+                                     operation_dict["username"], 
+                                     operation_dict["new_password"])
+            elif (operation_dict["type"] == "policy_group"):
+                if operation_dict["policy_group"] in special_policy_groups:
+                    
+        except Exception as e:
+            if (args.verbose):
+                print(f"Error modifying IAM user '{operation_dict["username"]}. {e}'")
+            if (args.logging):
+                logger.error(f"Error modifying IAM user '{operation_dict["username"]}. {e}")
+            
+
+# Function to modify user password (Email based recovered not yet supported)
+# Assumes the username is valid and exists
+def modify_user_password(args: any, username: str, new_password: str):
+    iam = boto3.client("iam")
+    
+    try:
+        iam.UpdateLoginProfile(
+        UserName = username,
+        Password = new_password,
+        )
+    except Exception as e:
+        if e == iam.exceptions.EntityTemporarilyUnmodifiable:
+            if (args.verbose):
+                print(f"Unable to modify password for username: {username}")
+                print(f"Username was recently reset/reconfigured, retry in a few minutes.")
+            if (args.logging):
+                logger.error(f"Unable to modify username: {username}. Entity temporarily unmodifiable. (Error-code: 409)")
+        elif e == iam.exceptions.LimitExceeded:
+            if (args.verbose):
+                print(f"Unable to modify password for username: {username}")
+                print(f"Operation beyond AWS account limits: {e}")
+            if (args.logging):
+                logger.error(f"Unable to modify password for username: {username}. Operation beyond AWS account limits: {e}. (Error-code: 409)")
+        elif e == iam.exceptions.NoSuchEntity:
+            if (args.verbose):
+                print(f"Unable to modify password for username: {username}. Username DNE!")
+            if (args.logging):
+                logger.error(f"Unable to modify password for username: {username}. Username DNE! (Error-code: 404)")
+        elif e == iam.exceptions.PasswordPolicyViolation:
+            if (args.verbose):
+               print(f"Unable to modify password for username: {username}. Password does not meet account password policy!")
+            if (args.logging):
+                logger.error(f"Unable to modify password for username: {username}. Failed account password policy! (Error-code: 400)")
+        elif e == iam.exceptions.ServiceFailure:
+            if (args.verbose):
+                print(f"Unable to modify password for username {username}. Unknown Error")
+            if (args.logging):
+                print(f"Unable to modify password for username {username}. Error unknown (Error-code: 500)")
+
+
+# Function to modify user policy group with OTC
+def modify_user_policy_group(args: any, username: str, policy_group: str, OTC: str):
 
 
 if __name__== "__main__":
@@ -180,19 +253,19 @@ if __name__== "__main__":
     
     if args.filename:
         with open(args.filename, mode="r", encoding="utf-8") as read_file:
-            op_objects = json.loads(read_file)
-            for op_object in op_objects:
-                if op_object["operation"] == "create":
-                    password = DEFAULT_PASSWORD if op_object["use_default_password"] else None
-                    create_user(op_object["username"], password, policy_group="UML_Students")
-                elif op_object["operation"] == "modify":
-                    
-                elif op_object["operation"] == "delete":
-
+            op_dicts = json.loads(read_file)
+            for op_dict in op_dicts:
+                if op_dict["operation"] == "create":
+                    password = DEFAULT_PASSWORD if op_dict["use_default_password"] else None
+                    create_user(op_dict["username"], password, policy_group="UML_Students")
+                elif op_dict["operation"] == "modify":
+                    # WIP
+                elif op_dict["operation"] == "delete":
+                    # WIP
                 else:
                     if (args.logging):
-                        logger.error(f"Invalid operation specified: {op_object["operation"]}")
-                    print(f"Operation invalid: {op_object["operation"]}")
+                        logger.error(f"Invalid operation specified: {op_dict["operation"]}")
+                    print(f"Operation invalid: {op_dict["operation"]}")
                 
                 
         # with open(args.filename, 'r') as file:
