@@ -13,16 +13,7 @@
 #   - Batch file
 #   - Single User
 # Add approval system for adding IAM account to Club_Leaders group
-#   - One or more members approval
-
-# Logging error symbols:
-# c - create
-# m - modify
-# d - delete
-# f - filename
-# p - policy group
-# u - username
-# 
+#   - OTC
 
 
 import boto3
@@ -114,7 +105,13 @@ def modify_user(args: any, operation_dict: dict):
                                      operation_dict["new_password"])
             elif (operation_dict["type"] == "policy_group"):
                 if operation_dict["policy_group"] in special_policy_groups:
-                    
+                    modify_user_special_policy_group(args, 
+                                                     operation_dict["username"], 
+                                                     operation_dict["policy_group"],
+                                                     operation_dict["OTC"])
+                else:
+                    modify_user_policy_group(args,
+                                             )
         except Exception as e:
             if (args.verbose):
                 print(f"Error modifying IAM user '{operation_dict["username"]}. {e}'")
@@ -129,16 +126,20 @@ def modify_user_password(args: any, username: str, new_password: str):
     
     try:
         iam.UpdateLoginProfile(
-        UserName = username,
-        Password = new_password,
+            UserName = username,
+            Password = new_password,
         )
+        if (args.verbose):
+            print(f"Password modified for username: {username}")
+        if (args.logging):
+            logger.log(f"Password successfully modified for username: {username}")
     except Exception as e:
         if e == iam.exceptions.EntityTemporarilyUnmodifiable:
             if (args.verbose):
                 print(f"Unable to modify password for username: {username}")
                 print(f"Username was recently reset/reconfigured, retry in a few minutes.")
             if (args.logging):
-                logger.error(f"Unable to modify username: {username}. Entity temporarily unmodifiable. (Error-code: 409)")
+                logger.warning(f"Unable to modify username: {username}. Entity temporarily unmodifiable. (Error-code: 409)")
         elif e == iam.exceptions.LimitExceeded:
             if (args.verbose):
                 print(f"Unable to modify password for username: {username}")
@@ -163,7 +164,11 @@ def modify_user_password(args: any, username: str, new_password: str):
 
 
 # Function to modify user policy group with OTC
-def modify_user_policy_group(args: any, username: str, policy_group: str, OTC: str):
+def modify_user_special_policy_group(args: any, username: str, policy_group: str, OTC: str):
+    
+
+def modify_user_special_policy_group(args: any, username: str, policy_group:str):
+    try:
 
 
 if __name__== "__main__":
