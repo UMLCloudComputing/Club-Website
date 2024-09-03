@@ -14,8 +14,7 @@
         "operation": "modify",
         "type": "policy_group",
         "username": "test@student.uml.edu",
-        "policy_group": "Student_Leaders",
-        "OTC": "1234"
+        "policy_group": "Student_Leaders"
     },
     {
         "operation": "delete",

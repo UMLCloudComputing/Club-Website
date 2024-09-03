@@ -20,7 +20,7 @@ It can also operate on:
 ### Requirements:
 1. A CLI configured with valid AWS Credentials to perform CRUD operations on IAM users. Specifically one with adequate permissions.
 2. Access to the boto3 API in Python
-3. A working Python interpreter since the script is written in Python
+3. A working Python interpreter since the script is written in Python.
 
 
 
@@ -52,26 +52,20 @@ As per the Boto3 Docs, removing an IAM user requires the following be removed fi
 Only after all those removals can the IAM user be removed validly.
 
 
-### OTC System:
-
-One-time-code system will be used to authenticate policy group transfers for IAM users. <br />
+### E-Board Policy Group admission (Policy Group addition)
+Only the E-Board (Members of Student_Leaders) have the privilage to add other members to the Student_Leaders Policy Group. 
+In order to add a user:
 From the client-end:
-1. User can place a request to be added to the Student_Leaders Policy group from the client-end.  
-3. User will be prompted on account details page to provide an OTC. 
-3. If the user enters a valid OTC they will be added to the Student_Leaders Policy Group
+1. Sufficiently privilaged user navigates to add user to E-Board menu
+2. Places the username of the individual to be added into an input field. 
+3. Once submitted, the backend will handle the process to promote the specified user to the Student_Leaders Policy group.
 
+From the back-end:
+1. E-Board status is determined for a user on their existence in the Student_Leaders Policy group.
+2. When a username is submitted via a sufficiently privilaged user, the script is run to add the user to the specified user group.
+3. The update for the user is as fast as the AWS user group can update on the cloud. 
+4. The client-end should poll the user's policy_group at each load of the user's profile page. Each load prompts a refetch for the user's data.
 
-#### Internal structure:
-- When a request for an OTC is made, a cloud service or process spools to create an OTC.
-- This code will stored within the service's local secure container on the cloud for persistence through website rebuilds. 
-- This code as restricted access for users and will only be accessible to users that are already part of the UML_Leaders policy group. Hence, in order to get access to the OTC, a user with sufficient Privileges would have to publish it (share with requestee). 
-- 
-
-#### OTC Properties:
-- Each OTC expires in 2 days. 
-- Each user is limited to one request every two days.
-- Each OTC is associated with a user, two users cannot attempt to use the same OTC.
-- After expiring, an OTC does not automatically re-generate for the user who request it. It must be re-requested.
 
 ---
 Copyright &copy; 2024 UML Cloud Computing Club All rights reserved

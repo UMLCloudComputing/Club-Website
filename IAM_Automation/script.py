@@ -26,13 +26,18 @@ import logging
 import json
 import typing
 from typing import Literal
-
+import aws_creds
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_PASSWORD = "Cloud@computing1"
 
-special_policy_groups = []
+
+
+iam = boto3.client("iam", aws_access_key=aws_creds.key, aws_secret_access_key=aws_creds.secret)
+
+special_policy_groups = ["UML_Students"]
+
 with open('permissive_policy_groups.csv', newline='')  as csvfile:
     reader = csv.reader(csvfile)
     special_policy_groups = list(reader)
@@ -43,12 +48,11 @@ def create_random_password(length = 16) -> str:
     password = ""
     for i in range(length):
         password += secrets.choice(chars)
-    logger.info(f"Password created, length: {length}")
+    logger.log(f"Password created, length: {length}")
     return password
 
 # Function to create an IAM account
 def create_user(args: any, username: str, password: typing.Optional[str] = None, policy_group: typing.Optional[str] = None):
-    iam = boto3.client("iam")
     # Check if user exists
     try:
         iam.get_user(UserName = username)
@@ -56,6 +60,7 @@ def create_user(args: any, username: str, password: typing.Optional[str] = None,
             print(f"IAM User Creation failed: Username taken")
         if (args.logging):
             logger.warning("IAM User Creation failed: Username taken")
+        status = False
     except iam.exceptions.NoSuchEntityException:
         try:    
             if password is None:
@@ -65,31 +70,34 @@ def create_user(args: any, username: str, password: typing.Optional[str] = None,
             if (args.verbose):
                 print(f"New IAM user '{username}' created sucessfully with password: '{password}'. Be sure to change ASAP.")
             if (args.logging):
-                logger.info(f"New IAM user '{username}' created sucessfully with password: '{password}'.")
-
+                logger.log(f"New IAM user '{username}' created sucessfully with password: '{password}'.")
+            status = True
             if policy_group is not None:
                 try:
                     iam.add_user_to_group(GroupName='UML_Students', UserName=username)
                     if (args.verbose):
-                        print(f"Policy group {policy_group} added to '{username}'")
+                        print(f"Policy group added to '{username}'")
                     if (args.logging):
-                        logger.error(f"Policy group {policy_group} added to '{username}'")
+                        logger.log(f"Policy group added to '{username}'")
+                    status = True
                 except Exception as e:
                     if (args.verbose):
-                        print(f"Error adding '{username}' to the policy group '{policy_group}'. {e}")
+                        print(f"Error adding '{username}' to the policy group. {e}")
                     if (args.logging):
-                        logger.error(f"Error adding '{username}' to policy group '{policy_group}'. {e}")
+                        logger.error(f"Error adding '{username}' to policy group. {e}")
+                    status = False
         except Exception as e:
             if (args.verbose):
                 print(f"Error creating the new IAM user '{username}'. {e}")
             if (args.logging):
                 logger.error(f"Error creating IAM user '{username}'. {e}")
-
+            status = False
+    return status
 
 # Function to modify IAM account password or Policy Group
 _TYPES = Literal["password", "policy_group"]
 def modify_user(args: any, operation_dict: dict):
-    iam = boto3.client("iam")
+
     # Check if the user exists
     try: 
         iam.get_user(UserName = operation_dict["username"])
@@ -97,33 +105,22 @@ def modify_user(args: any, operation_dict: dict):
             print(f"IAM User Modification failed: Username taken")
         if (args.logging):
             logger.warning("IAM User Modification failed: Username taken")
+        status = False
     except iam.exceptions.NoSuchEntityException:
-        try:
-            if (operation_dict["type"] == "password"):
-                modify_user_password(args, 
-                                     operation_dict["username"], 
-                                     operation_dict["new_password"])
-            elif (operation_dict["type"] == "policy_group"):
-                if operation_dict["policy_group"] in special_policy_groups:
-                    modify_user_special_policy_group(args, 
-                                                     operation_dict["username"], 
-                                                     operation_dict["policy_group"],
-                                                     operation_dict["OTC"])
-                else:
-                    modify_user_policy_group(args,
-                                             )
-        except Exception as e:
-            if (args.verbose):
-                print(f"Error modifying IAM user '{operation_dict["username"]}. {e}'")
-            if (args.logging):
-                logger.error(f"Error modifying IAM user '{operation_dict["username"]}. {e}")
-            
+        if (operation_dict["type"] == "password"):
+            status = modify_user_password(args, 
+                                    operation_dict["username"], 
+                                    operation_dict["new_password"])
+        elif (operation_dict["type"] == "policy_group"):
+            status = modify_user_policy_group(args,
+                                        operation_dict["username"],
+                                        operation_dict["policy_group"])
+    return status        
 
+# TODO
 # Function to modify user password (Email based recovered not yet supported)
 # Assumes the username is valid and exists
-def modify_user_password(args: any, username: str, new_password: str):
-    iam = boto3.client("iam")
-    
+def modify_user_password(args: any, username: str, new_password: str):    
     try:
         iam.UpdateLoginProfile(
             UserName = username,
@@ -133,6 +130,8 @@ def modify_user_password(args: any, username: str, new_password: str):
             print(f"Password modified for username: {username}")
         if (args.logging):
             logger.log(f"Password successfully modified for username: {username}")
+        status = True
+
     except Exception as e:
         if e == iam.exceptions.EntityTemporarilyUnmodifiable:
             if (args.verbose):
@@ -161,15 +160,36 @@ def modify_user_password(args: any, username: str, new_password: str):
                 print(f"Unable to modify password for username {username}. Unknown Error")
             if (args.logging):
                 print(f"Unable to modify password for username {username}. Error unknown (Error-code: 500)")
-
-
-# Function to modify user policy group with OTC
-def modify_user_special_policy_group(args: any, username: str, policy_group: str, OTC: str):
+        status = False
+    
+    return status
     
 
-def modify_user_special_policy_group(args: any, username: str, policy_group:str):
+# Adds user to the specified new policy group
+# Assumes a valid username 
+def modify_user_policy_group(args: any, username: str, policy_group:str):
+    # Check if user is already in group (should be handled in Exception)
+    
     try:
+        iam.add_user_to_group(
+            GroupName = policy_group,
+            UserName = username
+        )
+        if (args.verbose):
+            print(f"Policy group added to '{username}'")
+        if (args.logging):
+            logger.log(f"Policy group added to '{username}'.")
+        status = True
+    except Exception as e:
+        if (args.verbose):
+            print(f"Unable to add '{username}' to new policy group. {e}")
+        if (args.logging):
+            logger.error(f"Unable to add new policy group for '{username}'. {e}")
+        status = False
+    
+    return status
 
+        
 
 if __name__== "__main__":
     parser = argparse.ArgumentParser(
@@ -264,7 +284,7 @@ if __name__== "__main__":
                     password = DEFAULT_PASSWORD if op_dict["use_default_password"] else None
                     create_user(op_dict["username"], password, policy_group="UML_Students")
                 elif op_dict["operation"] == "modify":
-                    # WIP
+                    modify_user(args, op_dict)
                 elif op_dict["operation"] == "delete":
                     # WIP
                 else:

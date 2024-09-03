@@ -20,7 +20,9 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-# 
+
+# AWS Secrets
+IAM_Automation/aws_creds.py 
 
 # Ignore everything in docs/projects except md files in the root of docs/projects
 docs/projects/*
