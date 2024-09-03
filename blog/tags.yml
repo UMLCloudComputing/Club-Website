@@ -22,3 +22,8 @@ hawkerscrape:
   label: 'Hawkerscrape'
   permalink: "/hawkerscrape"
   description: 'Blog posts related to the hawkerscrape project'
+
+Semester-Welcome:
+  label: 'Semester Welcome'
+  permalink: "/semester-welcome"
+  description: 'Blog posts related to welcome/kickoff posts regarding new semesters'

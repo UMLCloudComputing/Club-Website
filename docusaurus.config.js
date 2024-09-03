@@ -103,7 +103,7 @@ const config = {
       announcementBar: {
         id: 'announcement-bar',
         content:
-          '🚀 We will be at the <a href="https://www.uml.edu/calendar/events/43828122">UML Club Engagement Fair</a> after Convocation! 🚀',
+          '🚀Kick-off meeting coming soon!🚀',
         backgroundColor: '#48a0ff',
         textColor: '#fff',
         isCloseable: false
