@@ -13,7 +13,8 @@
     {
         "operation": "modify",
         "type": "policy_group",
-        "username": "test@student.uml.edu",
+        "username_modify": "test@student.uml.edu",
+        "username_authority": "gurpreet_singh@student.uml.edu",
         "policy_group": "Student_Leaders"
     },
     {

@@ -12,8 +12,6 @@
 # Add IAM account group policy modification functionality (Change user groups)
 #   - Batch file
 #   - Single User
-# Add approval system for adding IAM account to Club_Leaders group
-#   - OTC
 
 
 import boto3
@@ -32,11 +30,11 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_PASSWORD = "Cloud@computing1"
 
-
-
 iam = boto3.client("iam", aws_access_key=aws_creds.key, aws_secret_access_key=aws_creds.secret)
 
-special_policy_groups = ["UML_Students"]
+special_policy_groups = ["Club_Leaders"]
+
+club_leaders_list = ( user["UserName"] for user in iam.get_group("Club_Leaders")["Users"])
 
 with open('permissive_policy_groups.csv', newline='')  as csvfile:
     reader = csv.reader(csvfile)
@@ -112,6 +110,7 @@ def modify_user(args: any, operation_dict: dict):
                                     operation_dict["username"], 
                                     operation_dict["new_password"])
         elif (operation_dict["type"] == "policy_group"):
+            if (operation_dict["username_authority"] not in )
             status = modify_user_policy_group(args,
                                         operation_dict["username"],
                                         operation_dict["policy_group"])
@@ -169,7 +168,6 @@ def modify_user_password(args: any, username: str, new_password: str):
 # Assumes a valid username 
 def modify_user_policy_group(args: any, username: str, policy_group:str):
     # Check if user is already in group (should be handled in Exception)
-    
     try:
         iam.add_user_to_group(
             GroupName = policy_group,
