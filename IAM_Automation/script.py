@@ -34,11 +34,14 @@ iam = boto3.client("iam", aws_access_key=aws_creds.key, aws_secret_access_key=aw
 
 special_policy_groups = ["Club_Leaders"]
 
+permissive_policy_groups = ["UML_Students"]
+
+# Extract list of club_leaders
 club_leaders_list = ( user["UserName"] for user in iam.get_group("Club_Leaders")["Users"])
 
-with open('permissive_policy_groups.csv', newline='')  as csvfile:
-    reader = csv.reader(csvfile)
-    special_policy_groups = list(reader)
+# with open('permissive_policy_groups.csv', newline='')  as csvfile:
+#     reader = csv.reader(csvfile)
+#     special_policy_groups = list(reader)
 
 
 def create_random_password(length = 16) -> str:
@@ -99,21 +102,25 @@ def modify_user(args: any, operation_dict: dict):
     # Check if the user exists
     try: 
         iam.get_user(UserName = operation_dict["username"])
-        if (args.verbose):
-            print(f"IAM User Modification failed: Username taken")
-        if (args.logging):
-            logger.warning("IAM User Modification failed: Username taken")
-        status = False
-    except iam.exceptions.NoSuchEntityException:
         if (operation_dict["type"] == "password"):
             status = modify_user_password(args, 
                                     operation_dict["username"], 
                                     operation_dict["new_password"])
         elif (operation_dict["type"] == "policy_group"):
-            if (operation_dict["username_authority"] not in )
-            status = modify_user_policy_group(args,
+            if (operation_dict["username_authority"] in club_leaders_list):
+                status = modify_user_policy_group(args,
                                         operation_dict["username"],
                                         operation_dict["policy_group"])
+            else:
+                if (args.logging):
+                    logger.error("IAM User Modification failed: Requesting username is unauthorized to change policy groups")
+    except iam.exceptions.NoSuchEntityException:
+        if (args.verbose):
+            print(f"IAM User Modification failed: Username taken")
+        if (args.logging):
+            logger.warning("IAM User Modification failed: Username taken")
+        status = False
+        
     return status        
 
 # TODO
@@ -274,6 +281,7 @@ if __name__== "__main__":
         parser.print_help()
         sys.exit()
     
+
     if args.filename:
         with open(args.filename, mode="r", encoding="utf-8") as read_file:
             op_dicts = json.loads(read_file)
@@ -301,4 +309,7 @@ if __name__== "__main__":
             
         #     create_user(args, username, password, policy_group)
     else:
-        create_user(args, args.username, password, args.policy_group)
+        if args.create:
+            create_user(args, args.username, password, args.policy_group)
+        elif args.modify:
+            modify_user(args, )
