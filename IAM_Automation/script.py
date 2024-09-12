@@ -107,13 +107,10 @@ def modify_user(args: any, operation_dict: dict):
                                     operation_dict["username"], 
                                     operation_dict["new_password"])
         elif (operation_dict["type"] == "policy_group"):
-            if (operation_dict["username_authority"] in club_leaders_list):
-                status = modify_user_policy_group(args,
-                                        operation_dict["username"],
-                                        operation_dict["policy_group"])
-            else:
-                if (args.logging):
-                    logger.error("IAM User Modification failed: Requesting username is unauthorized to change policy groups")
+            status = modify_user_policy_group(args,
+                                    operation_dict["username"],
+                                    operation_dict["username_authority"],
+                                    operation_dict["policy_group"])
     except iam.exceptions.NoSuchEntityException:
         if (args.verbose):
             print(f"IAM User Modification failed: Username taken")
@@ -173,7 +170,15 @@ def modify_user_password(args: any, username: str, new_password: str):
 
 # Adds user to the specified new policy group
 # Assumes a valid username 
-def modify_user_policy_group(args: any, username: str, policy_group:str):
+def modify_user_policy_group(args: any, username:str, username_authority:str, policy_group:str):
+    # Validate the requesting user's authority
+    if username_authority not in club_leaders_list:
+        if (args.verbose):
+            print(f"Unable to add '{username}' to new policy group. '{username_authority}' has insufficient priviliges to authorize this.")
+        if (args.logging):
+            logger.error(f"Unable to add '{username}' to new policy group. '{username_authority}' has insufficient priviliges to authorize this.")
+        return False
+    
     # Check if user is already in group (should be handled in Exception)
     try:
         iam.add_user_to_group(
@@ -194,7 +199,16 @@ def modify_user_policy_group(args: any, username: str, policy_group:str):
     
     return status
 
-        
+
+def delete_user(args:any, username:str):
+    try:
+        iam.get_user(UserName = username)
+        iam.delete
+    except iam.exceptions.NoSuchEntityException:
+        if args.verbose:
+            print(f"Unable to delete user '{username}'. The user already does not exist.")
+        if args.logging:
+            logger.error(f"Unable to delete user '{username}'. The user already does not exist.")
 
 if __name__== "__main__":
     parser = argparse.ArgumentParser(
@@ -206,21 +220,25 @@ if __name__== "__main__":
     # Argument groups
     mode = parser.add_argument_group("Functionality mode", "Argument to modify, create, or remove a single user")
     file_group = parser.add_argument_group("Batch User Creation", "Argument for batch creation of new IAM users via a JSON file")
-    single_user_group = parser.add_argument_group("Single User Creation", "Arguments for creating a single new IAM user")
+    single_user_create_group = parser.add_argument_group("Single User Creation", "Arguments for creating a single new IAM user")
+    single_user_modify_group = parser.add_argument_group("Single User Modifications", "Arguments for modifying password or policy_group for existing IAM user")
+    single_user_delete_group = parser.add_argument_group("Single User Deletion", "Arguments for deleting an existing IAM user")
     log_verbose_group = parser.add_argument_group("Logging/Verbose", "Arguments related to logging and info")
     
     # Runtime arguments
     mode.add_argument("-c", '--create', action="store_true", 
                       help="To specify new user(s) to be created. Create Mode.")
-    mode.add_argument('-m', '--modify', action="store_true", 
-                      help="To specify modifications on pre-existing users. Modify Mode.")
+    mode.add_argument('-mp', '--modify_password', action="store_true", 
+                      help="To specify modifications on pre-existing users. Modify Password Mode.")
+    mode.add_argument('-mpg', '--modify_policy_group', action="store_true",
+                      help="To specify modification on pre-existing users. Modify Policy Group Mode.")
     mode.add_argument("-d", '--delete', action="store_true", 
                       help="To specify deletion mode on pre-existing users. Delete Mode.")
-    single_user_group.add_argument('-u', '--username', action="store", type=str, 
-                                   help="The username for the new IAM user")
-    parser.add_argument('--use_default_pswd', action='store_true', 
-                        help="Whether or not to use the default password: 'Cloud@computing1'", default=False)
-    single_user_group.add_argument('--policy_group', action="store", type=str, 
+    parser.add_argument('-u', '--username', action="store", type=str, 
+                                   help="The username to operate on")
+    single_user_create_group.add_argument('--use_default_pswd', action='store_true', 
+                        help="Whether or not to use the default password: 'Cloud@computing1' for creating new users", default=False)
+    single_user_create_group.add_argument('--policy_group', action="store", type=str, 
                                    help="The Policy group to be used for the IAM user being created", default=None)
     file_group.add_argument('--filename', type=str, 
                             help="Filename for JSON file that contains IAM user details")
@@ -308,8 +326,20 @@ if __name__== "__main__":
         #     policy_group = 'UML_Students'
             
         #     create_user(args, username, password, policy_group)
+
     else:
         if args.create:
             create_user(args, args.username, password, args.policy_group)
-        elif args.modify:
-            modify_user(args, )
+        elif args.modify_password:
+            modify_user_password(args, args.username, args.new_password)
+        elif args.modify_policy_group:
+            # ADD USERNAME AUTHORITY TO ARGS
+            modify_user_policy_group(args, args.username, args.username_authority, args.policy_group)
+        elif args.delete:
+            #WIP
+        else:
+            print("Unrecognized operation!")
+            if args.verbose:
+                print(f"Supported operation options are --create (-c), --modify_password (-mp), --modify_policy_group (-mpg), and --delete (-d)")
+            if args.logging:
+                logger.error("Invalid operation specified")
